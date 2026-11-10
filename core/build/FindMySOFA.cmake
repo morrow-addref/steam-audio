@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if (TARGET MySOFA::MySOFA)
+	set(MySOFA_FOUND TRUE)
+	return()
+endif()
+
 include(FindPackageHandleStandardArgs)
 include(SteamAudioHelpers)
 

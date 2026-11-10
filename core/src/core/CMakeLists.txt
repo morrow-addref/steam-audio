@@ -33,7 +33,7 @@ function (compile_fbs FBS_SOURCE)
 
     add_custom_command(
         OUTPUT      ${CMAKE_CURRENT_BINARY_DIR}/${FBS_OUTPUT}
-        DEPENDS     ${CMAKE_CURRENT_SOURCE_DIR}/${FBS_SOURCE}
+        DEPENDS     ${FlatBuffers_EXECUTABLE} ${FBS_SOURCES}
         COMMAND     ${FlatBuffers_EXECUTABLE} ${FlatBuffers_FLAGS} -o ${CMAKE_CURRENT_BINARY_DIR}/ ${CMAKE_CURRENT_SOURCE_DIR}/${FBS_SOURCE}
         COMMENT     "Compiling FlatBuffers schema ${FBS_SOURCE}..."
         VERBATIM
@@ -514,12 +514,18 @@ if (STEAMAUDIO_ENABLE_AVX)
         float8_reverb_effect.cpp
     )
 	if (IPL_OS_WINDOWS)
+        if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+            set(IPL_AVX_FLAG "/arch:AVX")
+        else()
+            set(IPL_AVX_FLAG "-mavx")
+        endif()
+
         set_source_files_properties(
             float8_iir.cpp
             float8_delay.cpp
             float8_reverb_effect.cpp
             PROPERTIES
-                COMPILE_FLAGS "/arch:AVX"
+                COMPILE_FLAGS "${IPL_AVX_FLAG}"
         )
 	endif()
 endif()
@@ -590,9 +596,9 @@ if (STEAMAUDIO_BUILD_CSHARP_BINDINGS)
 endif()
 
 # This is needed so we can include generated headers
-target_include_directories(core PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-if (IPL_OS_WINDOWS)
+if (IPL_OS_WINDOWS AND BUILD_SHARED_LIBS AND (STEAMAUDIO_ENABLE_RADEONRAYS OR STEAMAUDIO_ENABLE_TRUEAUDIONEXT))
     target_link_libraries(core PUBLIC delayimp)
 elseif (IPL_OS_LINUX)
     target_link_libraries(core PUBLIC m dl pthread)
@@ -661,6 +667,16 @@ else()
 endif()
 
 target_link_libraries(phonon PRIVATE core hrtf)
+target_include_directories(phonon PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+    $<INSTALL_INTERFACE:include>
+)
+
+if (NOT BUILD_SHARED_LIBS OR IPL_OS_IOS)
+    target_compile_definitions(core PRIVATE STEAMAUDIO_STATIC)
+    target_compile_definitions(phonon PUBLIC STEAMAUDIO_STATIC)
+endif()
 
 if (IPL_OS_MACOS)
     add_library(phonon_bundle MODULE pch.cpp)
@@ -697,6 +713,8 @@ endif()
 #
 # POST-BUILD STEP FOR COPYING core -> fmod
 #
+
+if (STEAMAUDIO_COPY_PLUGINS)
 
 set(FMOD_INCLUDE_DIR ${CMAKE_HOME_DIRECTORY}/../fmod/include/phonon)
 
@@ -978,9 +996,13 @@ if (NOT UNREAL_PLUGIN_DIR STREQUAL "")
 endif()
 
 
+endif()
+
 #
 # INSTALL
 #
+
+if (STEAMAUDIO_INSTALL)
 
 get_bin_subdir(IPL_BIN_SUBDIR)
 
@@ -1019,12 +1041,14 @@ install(
     DESTINATION include
 )
 
-if (IPL_OS_WINDOWS AND IPL_CPU_X64)
+if (IPL_OS_WINDOWS AND IPL_CPU_X64 AND STEAMAUDIO_ENABLE_TRUEAUDIONEXT)
     install(
         FILES       ${CMAKE_HOME_DIRECTORY}/deps/trueaudionext/bin/windows-x64/$<LOWER_CASE:$<CONFIG>>/TrueAudioNext.dll
                     ${CMAKE_HOME_DIRECTORY}/deps/trueaudionext/bin/windows-x64/$<LOWER_CASE:$<CONFIG>>/GPUUtilities.dll
         DESTINATION lib/${IPL_BIN_SUBDIR}
     )
+endif()
+
 endif()
 
 include(CMakeListsInternal.txt OPTIONAL)

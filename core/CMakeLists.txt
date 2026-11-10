@@ -17,7 +17,7 @@ cmake_minimum_required(VERSION 3.17)
 project(Phonon VERSION 4.8.1)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_MODULE_PATH "${CMAKE_HOME_DIRECTORY}/build")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build")
 
 #
 # SYSTEM INTROSPECTION
@@ -82,6 +82,8 @@ endif()
 
 # Whether to compile a static or dynamic library
 option(BUILD_SHARED_LIBS "Build shared libraries instead of static." ON)
+option(STEAMAUDIO_COPY_PLUGINS "Copy SDK binaries and headers into plugin source trees." ON)
+option(STEAMAUDIO_INSTALL "Generate SDK install and packaging rules." ON)
 
 # Whether to enable octave band support (experimental).
 option(STEAMAUDIO_ENABLE_OCTAVE_BANDS "Enable octave band support (experimental)." OFF)
@@ -135,6 +137,13 @@ if (IPL_OS_WINDOWS)
         _DISABLE_EXTENDED_ALIGNED_STORAGE
         $<IF:$<CONFIG:Debug>,_DEBUG,NDEBUG>
     )
+endif()
+
+if (IPL_OS_WINDOWS AND MSVC)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<NOT:$<BOOL:${STEAMAUDIO_STATIC_RUNTIME}>>:DLL>")
+endif()
+
+if (IPL_OS_WINDOWS AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(
         /EHsc /MP /W3 /Zi
         $<$<AND:$<CONFIG:Debug>,$<BOOL:${STEAMAUDIO_STATIC_RUNTIME}>>:/MTd>
@@ -389,7 +398,11 @@ endif()
 # PACKAGING
 #
 
-install(FILES ${CMAKE_HOME_DIRECTORY}/THIRDPARTY.md DESTINATION root)
+if (NOT STEAMAUDIO_INSTALL)
+    return()
+endif()
+
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/THIRDPARTY.md DESTINATION root)
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/git/README.md.in ${CMAKE_CURRENT_BINARY_DIR}/git/README.md)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/git/downloads.html.in ${CMAKE_CURRENT_BINARY_DIR}/git/downloads.html)
@@ -398,7 +411,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/git/downloads.html DESTINATION git)
 
 set(CPACK_PACKAGE_VENDOR "Valve Corporation")
 set(CPACK_PACKAGE_FILE_NAME steamaudio)
-set(CPACK_PACKAGE_DIRECTORY ${CMAKE_HOME_DIRECTORY}/dist)
+set(CPACK_PACKAGE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dist)
 set(CPACK_INSTALL_CMAKE_PROJECTS "")
 set(CPACK_INSTALLED_DIRECTORIES
     ${CMAKE_INSTALL_PREFIX}/include include

@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if (TARGET PFFFT::PFFFT)
+	set(PFFFT_FOUND TRUE)
+	return()
+endif()
+
 include(FindPackageHandleStandardArgs)
 include(SteamAudioHelpers)
 
