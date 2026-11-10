@@ -175,7 +175,7 @@ void Library::unload(HMODULE library)
 void* Library::getFunction(HMODULE library,
                            const char* name)
 {
-    return GetProcAddress(library, name);
+    return reinterpret_cast<void*>(GetProcAddress(library, name));
 }
 #else
 void* Library::load(const char* name)

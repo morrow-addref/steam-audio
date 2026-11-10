@@ -73,7 +73,6 @@
 #include <codecvt>
 #endif
 #include <Windows.h>
-#include <delayimp.h>
 #endif
 
 #if defined(IPL_OS_MACOSX)

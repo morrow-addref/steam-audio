@@ -27,7 +27,7 @@
 #define IPLCALL
 #endif
 
-#if defined(STEAMAUDIO_BUILDING_CORE)
+#if defined(STEAMAUDIO_BUILDING_CORE) && !defined(STEAMAUDIO_STATIC)
 #if (defined(_WIN32) || defined(_WIN64))
 #define IPLAPI __declspec(dllexport)
 #else
